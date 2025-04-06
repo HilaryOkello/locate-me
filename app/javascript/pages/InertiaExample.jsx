@@ -7,7 +7,7 @@ import viteRubySvg from '/assets/vite_ruby.svg'
 
 import cs from './InertiaExample.module.css'
 
-export default function InertiaExample({ name }) {
+export default function InertiaExample({ name, user }) {
   const [count, setCount] = useState(0)
 
   return (
@@ -16,6 +16,7 @@ export default function InertiaExample({ name }) {
 
       <div className={cs.root}>
         <h1 className={cs.h1}>Hello {name}!</h1>
+        <div>{user.email }</div>
 
         <div>
           <a href="https://inertia-rails.dev" target="_blank">
