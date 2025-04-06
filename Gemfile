@@ -67,3 +67,5 @@ gem 'inertia_rails'
 gem "vite_rails", "~> 3.0"
 
 gem "devise", "~> 4.9"
+
+gem "faker"
