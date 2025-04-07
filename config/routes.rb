@@ -6,7 +6,7 @@ Rails.application.routes.draw do
   root to: 'home#index'
 
   # Define routes for locations (create and destroy only)
-  resources :locations, only: [:create, :destroy]
+  resources :locations, only: [:create]
 
   # Define the admin dashboard route directly (no namespace)
   get '/dashboard', to: 'dashboard#index'

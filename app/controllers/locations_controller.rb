@@ -10,7 +10,6 @@ class LocationsController < ApplicationController
           render inertia: 'LocationList', props: { errors: @location.errors.full_messages }, status: :unprocessable_entity, url: '/'
         end
       end
-
     private
 
     def location_params
