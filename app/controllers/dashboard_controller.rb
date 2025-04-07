@@ -6,10 +6,10 @@ class DashboardController < ApplicationController
     @total_locations = Location.count
     @total_users = User.count
 
-    render inertia: 'Dashboard', props: {
-      locations: @locations.as_json(include: { user: { only: [:id, :name, :email] } }),
+    render inertia: "Dashboard", props: {
+      locations: @locations.as_json(include: { user: { only: [ :id, :name, :email ] } }),
       totalLocations: @total_locations,
-      totalUsers: @total_users,
+      totalUsers: @total_users
     }
   end
 

@@ -26,21 +26,72 @@
     <%= vite_javascript_tag "inertia" %>
     <%= inertia_ssr_head %>
     <%= vite_javascript_tag 'application' %>
-    <!--
-      If using a TypeScript entrypoint file:
-        vite_typescript_tag 'application'
-
-      If using a .jsx or .tsx entrypoint, add the extension:
-        vite_javascript_tag 'application.jsx'
-
-      Visit the guide for more information: https://vite-ruby.netlify.app/guide/rails
-    -->
-
   </head>
 
-  <body>
-    <p class="notice"><%= notice %></p>
-    <p class="alert"><%= alert %></p>
+  <body class="relative">
     <%= yield %>
+    
+    <% if notice || alert %>
+      <div id="flash-messages" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-[9999] space-y-4 w-full max-w-md px-4">
+        <% if notice %>
+          <div class="flash-notice bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg flex items-center justify-between w-full transition-all duration-300 transform translate-x-0 opacity-100 mx-auto">
+            <div class="flex items-center">
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <%= notice %>
+            </div>
+            <button class="ml-4 text-white hover:text-green-200 focus:outline-none">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+        <% end %>
+        
+        <% if alert %>
+          <div class="flash-alert bg-red-500 text-white px-6 py-4 rounded-lg shadow-lg flex items-center justify-between w-full transition-all duration-300 transform translate-x-0 opacity-100 mx-auto">
+            <div class="flex items-center">
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <%= alert %>
+            </div>
+            <button class="ml-4 text-white hover:text-red-200 focus:outline-none">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+        <% end %>
+      </div>
+
+      <script>
+        document.addEventListener('DOMContentLoaded', () => {
+          const flashMessages = document.getElementById('flash-messages');
+          
+          setTimeout(() => {
+            if (flashMessages) {
+              const messages = flashMessages.querySelectorAll('.flash-notice, .flash-alert');
+              messages.forEach(message => {
+                message.classList.add('translate-x-full', 'opacity-0');
+                setTimeout(() => message.remove(), 300);
+              });
+            }
+          }, 5000);
+          
+          // Add click handler for close buttons
+          if (flashMessages) {
+            flashMessages.querySelectorAll('button').forEach(button => {
+              button.addEventListener('click', (e) => {
+                const message = e.target.closest('.flash-notice, .flash-alert');
+                message.classList.add('translate-x-full', 'opacity-0');
+                setTimeout(() => message.remove(), 300);
+              });
+            });
+          }
+        });
+      </script>
+    <% end %>
   </body>
 </html>
