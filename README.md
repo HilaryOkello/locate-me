@@ -1,24 +1,72 @@
-# README
+# 📍 Locate-Me - Location Sharing App
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+A Rails + Inertia.js (React) app where users can create an account, log in/out, and add their location as a pin on a map. The landing page displays pins from all users.
 
-Things you may want to cover:
+🔗 **Live site:** [https://mysite-nt9e.onrender.com](https://mysite-nt9e.onrender.com)
 
-* Ruby version
+---
 
-* System dependencies
+## 🚀 Features
 
-* Configuration
+- User authentication (sign up, log in/out)
+- Add a location pin (name, latitude, longitude)
+- View all pins on the map
+- Admin dashboard to manage users (delete users)
 
-* Database creation
+---
 
-* Database initialization
+## 🛠 Tech Stack
 
-* How to run the test suite
+- **Backend:** Ruby on Rails
+- **Frontend:** React (via Inertia.js)
+- **Styling:** Tailwind CSS
+- **Database:** PostgreSQL
 
-* Services (job queues, cache servers, search engines, etc.)
+---
 
-* Deployment instructions
+## 🧑‍💻 Getting Started
 
-* ...
+### 1. Clone the repo
+```bash
+git clone https://github.com/HilaryOkello/locate-me.git
+cd your-locate-me
+```
+
+### 2. Install dependencies
+```bash
+bundle install
+npm install
+```
+### 3. Install tailwind css
+```bash
+./bin/bundle add tailwindcss-ruby
+./bin/bundle add tailwindcss-rails
+./bin/rails tailwindcss:install
+```
+
+### 3. Set up the database
+```bash
+rails db:create
+rails db:migrate
+rails db:seed
+```
+
+### 4. Start the server
+```bash
+rails s
+```
+
+Then go to [http://localhost:3000](http://localhost:3000)
+
+---
+
+## ⚙️ Deployment
+
+App is deployed on [Render](https://mysite-nt9e.onrender.com/).
+
+---
+
+## ✅ Bonus Features
+
+- Role-based access controll: Admins can delete users and added locations from a separate dashboard accessible from the navbar for the admin
+- The credentials for admin and seeded users can be found in db/seeds.rb
