@@ -54,13 +54,17 @@ const LeafletMap = forwardRef(({
     userLocation,
     initialCenter = [0.0236, 37.9062], // Kenya center
     initialZoom = 6,
-    onMapReady
+    onMapReady,
+    isAddingLocation = false,
+    onLocationSelect
 }, ref) => {
     // --- Hooks --- (Must be called inside the component body)
     const mapContainerRef = useRef(null);
     const mapInstanceRef = useRef(null);
     const userMarkerRef = useRef(null);
     const mapOverlayRef = useRef(null);
+    const tempMarkerRef = useRef(null);
+    const clickHandlerRef = useRef(null);
 
     // Effect to add global CSS animation styles ONCE when the component mounts
     useEffect(() => {
@@ -80,19 +84,14 @@ const LeafletMap = forwardRef(({
                     width: 32px; /* Match iconSize */
                     height: 32px; /* Match iconSize */
                 }
+                /* Style for the selection marker */
+                .selection-marker-icon {
+                    position: relative;
+                    width: 32px;
+                    height: 32px;
+                }
             `;
             document.head.appendChild(style);
-
-            // Optional Cleanup: If this is the ONLY component needing this style,
-            // you might want to remove it on unmount. Often, global styles like
-            // animations are fine to leave.
-            // return () => {
-            //     const styleElement = document.getElementById(styleId);
-            //     if (styleElement) {
-            //         console.log('Removing pulse animation style');
-            //         document.head.removeChild(styleElement);
-            //     }
-            // };
         }
     }, []); // Empty dependency array ensures this runs only once on mount
 
@@ -233,6 +232,77 @@ const LeafletMap = forwardRef(({
             }
         }
     }, [userLocation]); // Re-run only when userLocation changes
+
+    // Effect to handle "Add Location" mode
+    useEffect(() => {
+        const map = mapInstanceRef.current;
+        if (!map) return;
+
+        // Clean up any existing markers and handlers
+        if (tempMarkerRef.current) {
+            map.removeLayer(tempMarkerRef.current);
+            tempMarkerRef.current = null;
+        }
+
+        if (clickHandlerRef.current) {
+            map.off('click', clickHandlerRef.current);
+            clickHandlerRef.current = null;
+        }
+
+        // Set cursor style based on mode
+        if (mapContainerRef.current) {
+            if (isAddingLocation) {
+                mapContainerRef.current.style.cursor = 'crosshair';
+            } else {
+                mapContainerRef.current.style.cursor = '';
+            }
+        }
+
+        // If we're in adding mode, set up the click handler
+        if (isAddingLocation) {
+            const selectionIcon = L.divIcon({
+                className: 'selection-marker-icon',
+                html: `
+                    <div style="background-color: #10b981; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 2px #10b981, 0 1px 6px rgba(0,0,0,0.4); position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2;"></div>
+                    <div style="position: absolute; top: 50%; left: 50%; width: 32px; height: 32px; border-radius: 50%; background-color: rgba(16, 185, 129, 0.2); transform: translate(-50%, -50%); animation: pulse 1.5s infinite ease-out; z-index: 1;"></div>
+                `,
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+            });
+
+            clickHandlerRef.current = (e) => {
+                const { lat, lng } = e.latlng;
+                
+                // Remove previous temp marker if exists
+                if (tempMarkerRef.current) {
+                    map.removeLayer(tempMarkerRef.current);
+                }
+                
+                // Add new marker at clicked position
+                tempMarkerRef.current = L.marker([lat, lng], { icon: selectionIcon, zIndexOffset: 1001 })
+                    .addTo(map);
+                
+                // Call the parent handler
+                if (onLocationSelect) {
+                    onLocationSelect({ lat, lng });
+                }
+            };
+            
+            map.on('click', clickHandlerRef.current);
+        }
+
+        return () => {
+            // Clean up on unmount or dependency change
+            if (map && clickHandlerRef.current) {
+                map.off('click', clickHandlerRef.current);
+            }
+            
+            // Reset cursor
+            if (mapContainerRef.current) {
+                mapContainerRef.current.style.cursor = '';
+            }
+        };
+    }, [isAddingLocation, onLocationSelect]);
 
     // --- Render ---
     return (
