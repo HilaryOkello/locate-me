@@ -3,15 +3,15 @@ Rails.application.routes.draw do
   devise_for :users
 
   # Set root to the new home controller
-  root to: 'home#index'
+  root to: "home#index"
 
   # Define routes for locations (create and destroy only)
-  resources :locations, only: [:create]
+  resources :locations, only: [ :create ]
 
   # Define the admin dashboard route directly (no namespace)
-  get '/dashboard', to: 'dashboard#index'
-  delete '/dashboard/locations/:id', to: 'dashboard#destroy_location', as: 'destroy_location'
-  delete '/dashboard/locations', to: 'dashboard#destroy_all_locations', as: 'destroy_all_locations' # New route
+  get "/dashboard", to: "dashboard#index"
+  delete "/dashboard/locations/:id", to: "dashboard#destroy_location", as: "destroy_location"
+  delete "/dashboard/locations", to: "dashboard#destroy_all_locations", as: "destroy_all_locations" # New route
 
   # Define the health check route
   get "up" => "rails/health#show", as: :rails_health_check

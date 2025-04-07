@@ -2,12 +2,12 @@ class LocationsController < ApplicationController
     def create
         @location = current_user.locations.new(location_params)
         if @location.save
-          render inertia: 'LocationList', props: {
-            success: 'Location saved successfully!',
+          render inertia: "LocationList", props: {
+            success: "Location saved successfully!",
             locations: current_user.locations.all
-          }, url: '/' 
+          }, url: "/"
         else
-          render inertia: 'LocationList', props: { errors: @location.errors.full_messages }, status: :unprocessable_entity, url: '/'
+          render inertia: "LocationList", props: { errors: @location.errors.full_messages }, status: :unprocessable_entity, url: "/"
         end
       end
     private
@@ -15,5 +15,4 @@ class LocationsController < ApplicationController
     def location_params
         params.require(:location).permit(:name, :latitude, :longitude)
     end
-
 end
