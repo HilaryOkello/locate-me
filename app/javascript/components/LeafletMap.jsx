@@ -40,27 +40,30 @@ const styleZoomControls = (mapElement) => {
         applyStyles(zoomInButton);
         applyStyles(zoomOutButton);
         if (zoomOutButton) {
-           // Remove potentially conflicting border class if it exists
-           zoomOutButton.classList.remove('border-t', 'border-gray-200');
+            // Remove potentially conflicting border class if it exists
+            zoomOutButton.classList.remove('border-t', 'border-gray-200');
         }
     }, 100); // Delay might be needed for Leaflet to render controls
 };
 
-
-// --- Component Definition ---
 const LeafletMap = forwardRef(({
     locations,
     user,
     userLocation,
-    initialCenter = [0.0236, 37.9062], // Kenya center
-    initialZoom = 6,
-    onMapReady
+    initialCenter = [-0.0917, 34.7680],
+    initialZoom = 10,
+    onMapReady,
+    isAddingLocation = false,
+    onLocationSelect,
+    selectedPosition = null
 }, ref) => {
-    // --- Hooks --- (Must be called inside the component body)
     const mapContainerRef = useRef(null);
     const mapInstanceRef = useRef(null);
     const userMarkerRef = useRef(null);
-    const mapOverlayRef = useRef(null);
+    const tempMarkerRef = useRef(null);
+    const clickHandlerRef = useRef(null);
+    const markersRef = useRef([]); // Store location markers for cleanup
+    const locationsRef = useRef(locations); // Store locations for comparison
 
     // Effect to add global CSS animation styles ONCE when the component mounts
     useEffect(() => {
@@ -80,19 +83,14 @@ const LeafletMap = forwardRef(({
                     width: 32px; /* Match iconSize */
                     height: 32px; /* Match iconSize */
                 }
+                /* Style for the selection marker */
+                .selection-marker-icon {
+                    position: relative;
+                    width: 32px;
+                    height: 32px;
+                }
             `;
             document.head.appendChild(style);
-
-            // Optional Cleanup: If this is the ONLY component needing this style,
-            // you might want to remove it on unmount. Often, global styles like
-            // animations are fine to leave.
-            // return () => {
-            //     const styleElement = document.getElementById(styleId);
-            //     if (styleElement) {
-            //         console.log('Removing pulse animation style');
-            //         document.head.removeChild(styleElement);
-            //     }
-            // };
         }
     }, []); // Empty dependency array ensures this runs only once on mount
 
@@ -104,7 +102,7 @@ const LeafletMap = forwardRef(({
         getMapInstance: () => mapInstanceRef.current,
     }));
 
-    // Effect for map initialization and location markers
+    // Effect for map initialization - ONLY once
     useEffect(() => {
         if (!mapContainerRef.current || mapInstanceRef.current) return;
 
@@ -115,71 +113,24 @@ const LeafletMap = forwardRef(({
         });
         mapInstanceRef.current = map;
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        L.tileLayer('https://tiles.stadiamaps.com/tiles/osm_bright/{z}/{x}/{y}{r}.{ext}', {
             subdomains: 'abcd',
-            maxZoom: 19
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            ext: 'png'
         }).addTo(map);
 
         // Add and style zoom controls
         const zoomControl = L.control.zoom({ position: 'bottomright' }).addTo(map);
         styleZoomControls(mapContainerRef.current); // Style after adding
 
-        // Add location markers (using custom indigo dot icon)
-        const locationIcon = L.divIcon({
-            className: 'custom-div-icon', // Can target this with CSS if needed
-            html: `<div style="background-color: #4f46e5; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 5px rgba(0,0,0,0.3);"></div>`,
-            iconSize: [16, 16], // Size of the clickable area
-            iconAnchor: [8, 8] // Center the icon anchor
-        });
-
-        locations.forEach(location => {
-            const tooltipContent = `<div class="p-2">
-                <div class="font-bold text-indigo-700">${location.name}</div>
-                <div class="text-gray-600">Added by: ${user?.email || 'Unknown'}</div>
-              </div>`;
-            L.marker([location.latitude, location.longitude], { icon: locationIcon })
-                .addTo(map)
-                .bindTooltip(tooltipContent, {
-                    direction: 'top',
-                    permanent: false,
-                    className: 'bg-white shadow-lg rounded-lg border-none font-sans' // Add font-sans if needed
-                });
-        });
-
-        // Handle Map Overlay positioning
-        const overlayElement = mapOverlayRef.current;
-        if (overlayElement) {
-            const updateOverlay = () => {
-                 if (!map.getBounds().isValid() || !overlayElement) return;
-                try {
-                    const mapBounds = map.getBounds();
-                    const southWest = mapBounds.getSouthWest();
-                    const northEast = mapBounds.getNorthEast();
-                    const bottomLeft = map.latLngToLayerPoint(southWest);
-                    const topRight = map.latLngToLayerPoint(northEast);
-
-                    L.DomUtil.setPosition(overlayElement, bottomLeft);
-                    overlayElement.style.width = `${Math.abs(topRight.x - bottomLeft.x)}px`;
-                    overlayElement.style.height = `${Math.abs(bottomLeft.y - topRight.y)}px`;
-                } catch (e) {
-                    // This can happen briefly during map destruction or initialization
-                    console.warn("Could not update overlay position:", e);
-                }
-            };
-            map.on('move zoom viewreset load', updateOverlay); // Update on various map events
-            map.whenReady(updateOverlay); // Ensure initial position
-            setTimeout(updateOverlay, 50); // Extra check for race conditions
-        }
-
         // Resize Observer
         const resizeObserver = new ResizeObserver(() => {
             map.invalidateSize({ animate: false }); // Invalidate size without animation on resize
         });
         if (mapContainerRef.current) {
-           resizeObserver.observe(mapContainerRef.current);
+            resizeObserver.observe(mapContainerRef.current);
         }
-
 
         if (onMapReady) {
             map.whenReady(() => onMapReady(map)); // Ensure map is fully ready
@@ -190,11 +141,60 @@ const LeafletMap = forwardRef(({
             map.remove();
             mapInstanceRef.current = null;
             if (mapContainerRef.current) {
-               resizeObserver.unobserve(mapContainerRef.current); // Use unobserve for specific element
+                resizeObserver.unobserve(mapContainerRef.current); // Use unobserve for specific element
             }
-            // resizeObserver.disconnect(); // Alternative: disconnects observer entirely
         };
-    }, [locations, user, initialCenter, initialZoom, onMapReady]); // Dependencies for map setup
+    }, []); // Empty dependency - initialize map ONCE
+
+    // Separate effect to update map with locations
+    useEffect(() => {
+        const map = mapInstanceRef.current;
+        if (!map) return;
+
+        // Clean up previous markers
+        markersRef.current.forEach(marker => {
+            try {
+                marker.remove();
+            } catch (e) {
+                // Ignore errors if marker already removed
+            }
+        });
+        markersRef.current = [];
+
+        // Create location icon
+        const locationIcon = L.divIcon({
+            className: 'custom-div-icon',
+            html: `
+                <div style="position: relative;">
+                    <svg width="24" height="41" viewBox="0 0 24 41" style="position: absolute; top: 0; left: 0;">
+                        <path fill="#4f46e5" d="M12 0C5.373 0 0 5.373 0 12c0 12 12 28 12 28s12-16 12-28c0-6.627-5.373-12-12-12z"/>
+                        <circle fill="white" cx="12" cy="10" r="3"/>
+                    </svg>
+                </div>
+            `,
+            iconSize: [24, 41],  // Matches SVG dimensions
+            iconAnchor: [12, 41],  // Anchor at bottom center
+            popupAnchor: [0, -36]  // Adjust popup position
+        });
+
+        // Add location markers
+        locations.forEach(location => {
+            const tooltipContent = `<div class="p-2">
+                <div class="font-bold text-indigo-700">${location.name}</div>
+                <div class="text-gray-600">Added by: ${user?.name || 'Unknown'}</div>
+              </div>`;
+            const marker = L.marker([location.latitude, location.longitude], { icon: locationIcon })
+                .addTo(map)
+                .bindTooltip(tooltipContent, {
+                    direction: 'top',
+                    permanent: false,
+                    className: 'bg-white shadow-lg rounded-lg border-none font-sans'
+                });
+            markersRef.current.push(marker);
+        });
+
+        locationsRef.current = locations;
+    }, [locations, user]); // Only when locations change
 
     // Effect to handle adding/updating the USER marker when userLocation prop changes
     useEffect(() => {
@@ -203,9 +203,9 @@ const LeafletMap = forwardRef(({
 
         // Remove previous marker if userLocation is gone or marker exists
         if (!userLocation && userMarkerRef.current) {
-             try { map.removeLayer(userMarkerRef.current); } catch(e) {/* Ignore */}
-             userMarkerRef.current = null;
-             return; // Exit early
+            try { map.removeLayer(userMarkerRef.current); } catch (e) {/* Ignore */ }
+            userMarkerRef.current = null;
+            return; // Exit early
         }
 
         if (userLocation) {
@@ -234,19 +234,98 @@ const LeafletMap = forwardRef(({
         }
     }, [userLocation]); // Re-run only when userLocation changes
 
-    // --- Render ---
+    // Effect to handle "Add Location" mode
+    useEffect(() => {
+        const map = mapInstanceRef.current;
+        if (!map) return;
+
+        // Clean up click handler when not in adding mode
+        if (clickHandlerRef.current) {
+            map.off('click', clickHandlerRef.current);
+            clickHandlerRef.current = null;
+        }
+
+        // Set cursor style based on mode
+        if (mapContainerRef.current) {
+            if (isAddingLocation) {
+                mapContainerRef.current.style.cursor = 'crosshair';
+            } else {
+                mapContainerRef.current.style.cursor = '';
+            }
+        }
+
+        // If we're in adding mode, set up the click handler
+        if (isAddingLocation) {
+            const selectionIcon = L.divIcon({
+                className: 'selection-marker-icon',
+                html: `
+                <div style="background-color: #10b981; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 2px #10b981, 0 1px 6px rgba(0,0,0,0.4); position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2;"></div>
+                <div style="position: absolute; top: 50%; left: 50%; width: 32px; height: 32px; border-radius: 50%; background-color: rgba(156, 163, 175, 0.2); transform: translate(-50%, -50%); animation: pulse 1.5s infinite ease-out; z-index: 1;"></div>
+            `,
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+            });
+
+            clickHandlerRef.current = (e) => {
+                const { lat, lng } = e.latlng;
+
+                // Remove previous temp marker if exists
+                if (tempMarkerRef.current) {
+                    map.removeLayer(tempMarkerRef.current);
+                }
+
+                // Add new marker at clicked position
+                tempMarkerRef.current = L.marker([lat, lng], { icon: selectionIcon, zIndexOffset: 1001 })
+                    .addTo(map);
+
+                // Call the parent handler
+                if (onLocationSelect) {
+                    onLocationSelect({ lat, lng });
+                }
+            };
+
+            map.on('click', clickHandlerRef.current);
+        }
+
+        return () => {
+            // Clean up only the click handler on unmount or dependency change
+            if (map && clickHandlerRef.current) {
+                map.off('click', clickHandlerRef.current);
+            }
+
+            // Reset cursor
+            if (mapContainerRef.current) {
+                mapContainerRef.current.style.cursor = '';
+            }
+            // Do NOT remove the temp marker here
+        };
+    }, [isAddingLocation, onLocationSelect]);
+
+    // Separate effect to handle the temporary marker lifecycle
+    useEffect(() => {
+        const map = mapInstanceRef.current;
+        if (!map) return;
+
+        // Only clean up the temp marker when explicitly asked to
+        // (like when form is submitted or canceled)
+        if (!selectedPosition && tempMarkerRef.current) {
+            console.log(selectedPosition)
+            map.removeLayer(tempMarkerRef.current);
+            tempMarkerRef.current = null;
+        }
+
+        return () => {
+            // Clean up on component unmount
+            // if (tempMarkerRef.current && map) {
+            //     map.removeLayer(tempMarkerRef.current);
+            //     tempMarkerRef.current = null;
+            // }
+        };
+    }, [selectedPosition]);
+
     return (
-        <div ref={mapContainerRef} className="w-full h-full relative overflow-hidden"> {/* Added overflow-hidden */}
-            {/* Color overlay with transparency */}
-            <div
-                ref={mapOverlayRef}
-                className="absolute top-0 left-0 pointer-events-none z-[399]" // Below markers/controls
-                style={{
-                    backgroundColor: 'rgba(79, 70, 229, 0.08)',
-                    mixBlendMode: 'multiply'
-                }}
-            ></div>
-             {/* Map controls (like zoom) will be added by Leaflet into this container */}
+        <div ref={mapContainerRef} className="w-full h-full relative overflow-hidden">
+            {/* Map controls (like zoom) will be added by Leaflet into this container */}
         </div>
     );
 });
