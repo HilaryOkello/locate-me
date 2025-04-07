@@ -1,7 +1,11 @@
 Rails.application.routes.draw do
+  # Set routes for Devise auth
   devise_for :users
-  root to: 'locations#index'
-  resources :locations, only: [:index, :show, :create]
+
+  # Set root to the new home controller
+  root to: 'home#index'
+
+  resources :locations, only: [:create]
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
