@@ -61,6 +61,8 @@ const LeafletMap = forwardRef(({
     const userMarkerRef = useRef(null);
     const tempMarkerRef = useRef(null);
     const clickHandlerRef = useRef(null);
+    const markersRef = useRef([]); // Store location markers for cleanup
+    const locationsRef = useRef(locations); // Store locations for comparison
 
     // Effect to add global CSS animation styles ONCE when the component mounts
     useEffect(() => {
@@ -99,7 +101,7 @@ const LeafletMap = forwardRef(({
         getMapInstance: () => mapInstanceRef.current,
     }));
 
-    // Effect for map initialization and location markers
+    // Effect for map initialization - ONLY once
     useEffect(() => {
         if (!mapContainerRef.current || mapInstanceRef.current) return;
 
@@ -121,28 +123,6 @@ const LeafletMap = forwardRef(({
         const zoomControl = L.control.zoom({ position: 'bottomright' }).addTo(map);
         styleZoomControls(mapContainerRef.current); // Style after adding
 
-        // Add location markers (using custom indigo dot icon)
-        const locationIcon = L.divIcon({
-            className: 'custom-div-icon', // Can target this with CSS if needed
-            html: `<div style="background-color: #4f46e5; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 5px rgba(0,0,0,0.3);"></div>`,
-            iconSize: [16, 16], // Size of the clickable area
-            iconAnchor: [8, 8] // Center the icon anchor
-        });
-
-        locations.forEach(location => {
-            const tooltipContent = `<div class="p-2">
-                <div class="font-bold text-indigo-700">${location.name}</div>
-                <div class="text-gray-600">Added by: ${user?.email || 'Unknown'}</div>
-              </div>`;
-            L.marker([location.latitude, location.longitude], { icon: locationIcon })
-                .addTo(map)
-                .bindTooltip(tooltipContent, {
-                    direction: 'top',
-                    permanent: false,
-                    className: 'bg-white shadow-lg rounded-lg border-none font-sans' // Add font-sans if needed
-                });
-        });
-
         // Resize Observer
         const resizeObserver = new ResizeObserver(() => {
             map.invalidateSize({ animate: false }); // Invalidate size without animation on resize
@@ -163,7 +143,49 @@ const LeafletMap = forwardRef(({
                resizeObserver.unobserve(mapContainerRef.current); // Use unobserve for specific element
             }
         };
-    }, [locations, user, initialCenter, initialZoom, onMapReady]); // Dependencies for map setup
+    }, []); // Empty dependency - initialize map ONCE
+
+    // Separate effect to update map with locations
+    useEffect(() => {
+        const map = mapInstanceRef.current;
+        if (!map) return;
+
+        // Clean up previous markers
+        markersRef.current.forEach(marker => {
+            try { 
+                marker.remove();
+            } catch(e) {
+                // Ignore errors if marker already removed
+            }
+        });
+        markersRef.current = [];
+
+        // Create location icon
+        const locationIcon = L.divIcon({
+            className: 'custom-div-icon', 
+            html: `<div style="background-color: #4f46e5; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 5px rgba(0,0,0,0.3);"></div>`,
+            iconSize: [16, 16], 
+            iconAnchor: [8, 8] 
+        });
+
+        // Add location markers
+        locations.forEach(location => {
+            const tooltipContent = `<div class="p-2">
+                <div class="font-bold text-indigo-700">${location.name}</div>
+                <div class="text-gray-600">Added by: ${user?.email || 'Unknown'}</div>
+              </div>`;
+            const marker = L.marker([location.latitude, location.longitude], { icon: locationIcon })
+                .addTo(map)
+                .bindTooltip(tooltipContent, {
+                    direction: 'top',
+                    permanent: false,
+                    className: 'bg-white shadow-lg rounded-lg border-none font-sans'
+                });
+            markersRef.current.push(marker);
+        });
+
+        locationsRef.current = locations;
+    }, [locations, user]); // Only when locations change
 
     // Effect to handle adding/updating the USER marker when userLocation prop changes
     useEffect(() => {
