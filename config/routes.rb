@@ -11,7 +11,11 @@ Rails.application.routes.draw do
   # Define the admin dashboard route directly (no namespace)
   get "/dashboard", to: "dashboard#index"
   delete "/dashboard/locations/:id", to: "dashboard#destroy_location", as: "destroy_location"
-  delete "/dashboard/locations", to: "dashboard#destroy_all_locations", as: "destroy_all_locations" # New route
+  delete "/dashboard/locations", to: "dashboard#destroy_all_locations", as: "destroy_all_locations"
+
+   # New user management routes
+   delete "dashboard/users/:id", to: "dashboard#destroy_user"
+   delete "dashboard/users", to: "dashboard#destroy_all_users"
 
   # Define the health check route
   get "up" => "rails/health#show", as: :rails_health_check
