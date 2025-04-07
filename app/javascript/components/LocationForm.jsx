@@ -1,4 +1,3 @@
-// src/components/LocationForm.jsx
 import React, { useState } from 'react';
 
 /**
@@ -9,7 +8,7 @@ import React, { useState } from 'react';
  *
  * @param {object} props - Component props
  * @param {object} props.position - The selected position {lat, lng}
- * @param {function} props.onSubmit - Function to call with form data on submit
+ * @param {function} props.onSubmit - Function to call with form data on submit (should be an Inertia router.post call)
  * @param {function} props.onCancel - Function to call when canceling the form
  */
 const LocationForm = ({ position, onSubmit, onCancel }) => {
@@ -18,22 +17,21 @@ const LocationForm = ({ position, onSubmit, onCancel }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!name.trim()) return;
-        
+
         setIsSubmitting(true);
-        
+
         try {
             await onSubmit({
                 name: name.trim(),
                 latitude: position.lat,
                 longitude: position.lng
             });
-            
-            // Reset form
-            setName('');
+            setName(''); // Reset form on successful submission (Inertia handles re-render)
         } catch (error) {
             console.error('Error submitting location:', error);
+            // Optionally handle form-specific error display here
         } finally {
             setIsSubmitting(false);
         }
@@ -44,7 +42,7 @@ const LocationForm = ({ position, onSubmit, onCancel }) => {
             <div className="mb-3 text-center text-sm text-gray-500">
                 Selected coordinates: {position.lat.toFixed(6)}°, {position.lng.toFixed(6)}°
             </div>
-            
+
             <form onSubmit={handleSubmit}>
                 <div className="mb-3">
                     <label htmlFor="location-name" className="block text-sm font-medium text-gray-700 mb-1">
@@ -61,7 +59,7 @@ const LocationForm = ({ position, onSubmit, onCancel }) => {
                         autoFocus
                     />
                 </div>
-                
+
                 <div className="flex justify-end space-x-2">
                     <button
                         type="button"
