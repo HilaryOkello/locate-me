@@ -51,7 +51,7 @@ const LeafletMap = forwardRef(({
     user,
     userLocation,
     initialCenter = [-0.0917, 34.7680],
-    initialZoom = 10,
+    initialZoom = 13,
     onMapReady,
     isAddingLocation = false,
     onLocationSelect,
@@ -181,7 +181,9 @@ const LeafletMap = forwardRef(({
         locations.forEach(location => {
             const tooltipContent = `<div class="p-2">
                 <div class="font-bold text-indigo-700">${location.name}</div>
-                <div class="text-gray-600">Added by: ${user?.name || 'Unknown'}</div>
+                <div class="text-gray-600">Latitude: ${location.latitude}</div>
+                <div class="text-gray-600">Longitude: ${location.longitude}</div>
+                <div class="text-gray-600">Added by: ${location.user_name || 'Unknown'}</div>
               </div>`;
             const marker = L.marker([location.latitude, location.longitude], { icon: locationIcon })
                 .addTo(map)
