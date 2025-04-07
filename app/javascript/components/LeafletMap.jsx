@@ -46,23 +46,19 @@ const styleZoomControls = (mapElement) => {
     }, 100); // Delay might be needed for Leaflet to render controls
 };
 
-
-// --- Component Definition ---
 const LeafletMap = forwardRef(({
     locations,
     user,
     userLocation,
-    initialCenter = [0.0236, 37.9062], // Kenya center
-    initialZoom = 6,
+    initialCenter = [-0.0917, 34.7680],
+    initialZoom = 10,
     onMapReady,
     isAddingLocation = false,
     onLocationSelect
 }, ref) => {
-    // --- Hooks --- (Must be called inside the component body)
     const mapContainerRef = useRef(null);
     const mapInstanceRef = useRef(null);
     const userMarkerRef = useRef(null);
-    const mapOverlayRef = useRef(null);
     const tempMarkerRef = useRef(null);
     const clickHandlerRef = useRef(null);
 
@@ -114,10 +110,11 @@ const LeafletMap = forwardRef(({
         });
         mapInstanceRef.current = map;
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        L.tileLayer('https://tiles.stadiamaps.com/tiles/osm_bright/{z}/{x}/{y}{r}.{ext}', {
             subdomains: 'abcd',
-            maxZoom: 19
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            ext: 'png'
         }).addTo(map);
 
         // Add and style zoom controls
@@ -146,31 +143,6 @@ const LeafletMap = forwardRef(({
                 });
         });
 
-        // Handle Map Overlay positioning
-        const overlayElement = mapOverlayRef.current;
-        if (overlayElement) {
-            const updateOverlay = () => {
-                 if (!map.getBounds().isValid() || !overlayElement) return;
-                try {
-                    const mapBounds = map.getBounds();
-                    const southWest = mapBounds.getSouthWest();
-                    const northEast = mapBounds.getNorthEast();
-                    const bottomLeft = map.latLngToLayerPoint(southWest);
-                    const topRight = map.latLngToLayerPoint(northEast);
-
-                    L.DomUtil.setPosition(overlayElement, bottomLeft);
-                    overlayElement.style.width = `${Math.abs(topRight.x - bottomLeft.x)}px`;
-                    overlayElement.style.height = `${Math.abs(bottomLeft.y - topRight.y)}px`;
-                } catch (e) {
-                    // This can happen briefly during map destruction or initialization
-                    console.warn("Could not update overlay position:", e);
-                }
-            };
-            map.on('move zoom viewreset load', updateOverlay); // Update on various map events
-            map.whenReady(updateOverlay); // Ensure initial position
-            setTimeout(updateOverlay, 50); // Extra check for race conditions
-        }
-
         // Resize Observer
         const resizeObserver = new ResizeObserver(() => {
             map.invalidateSize({ animate: false }); // Invalidate size without animation on resize
@@ -178,7 +150,6 @@ const LeafletMap = forwardRef(({
         if (mapContainerRef.current) {
            resizeObserver.observe(mapContainerRef.current);
         }
-
 
         if (onMapReady) {
             map.whenReady(() => onMapReady(map)); // Ensure map is fully ready
@@ -191,7 +162,6 @@ const LeafletMap = forwardRef(({
             if (mapContainerRef.current) {
                resizeObserver.unobserve(mapContainerRef.current); // Use unobserve for specific element
             }
-            // resizeObserver.disconnect(); // Alternative: disconnects observer entirely
         };
     }, [locations, user, initialCenter, initialZoom, onMapReady]); // Dependencies for map setup
 
@@ -304,19 +274,9 @@ const LeafletMap = forwardRef(({
         };
     }, [isAddingLocation, onLocationSelect]);
 
-    // --- Render ---
     return (
-        <div ref={mapContainerRef} className="w-full h-full relative overflow-hidden"> {/* Added overflow-hidden */}
-            {/* Color overlay with transparency */}
-            <div
-                ref={mapOverlayRef}
-                className="absolute top-0 left-0 pointer-events-none z-[399]" // Below markers/controls
-                style={{
-                    backgroundColor: 'rgba(79, 70, 229, 0.08)',
-                    mixBlendMode: 'multiply'
-                }}
-            ></div>
-             {/* Map controls (like zoom) will be added by Leaflet into this container */}
+        <div ref={mapContainerRef} className="w-full h-full relative overflow-hidden">
+            {/* Map controls (like zoom) will be added by Leaflet into this container */}
         </div>
     );
 });
