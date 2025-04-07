@@ -29,8 +29,10 @@ A Rails + Inertia.js (React) app where users can create an account, log in/out, 
 ### 1. Clone the repo
 ```bash
 git clone https://github.com/HilaryOkello/locate-me.git
-cd your-locate-me
+cd locate-me
 ```
+
+If loaded from a zip file, then extract the folder and navigate to `locate-me`
 
 ### 2. Install dependencies
 ```bash
