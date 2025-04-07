@@ -1,7 +1,6 @@
 Rails.application.routes.draw do
   devise_for :users
-  root to: 'inertia_example#index'
-  get 'inertia-example', to: 'inertia_example#index'
+  root to: 'locations#index'
   resources :locations, only: [:index, :show]
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
