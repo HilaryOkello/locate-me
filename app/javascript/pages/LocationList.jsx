@@ -17,12 +17,25 @@ const LocationList = ({ user, locations }) => {
     const [selectedPosition, setSelectedPosition] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState(null);
+    const [showSuccess, setShowSuccess] = useState(false);
     const { success: globalSuccess, errors: globalErrors } = usePage().props;
 
     // Store map reference when it's ready
     const handleMapReady = useCallback((mapInstance) => {
         mapInstanceRef.current = mapInstance;
     }, []);
+
+    // Show success message for 5 seconds when it appears
+    useEffect(() => {
+        if (globalSuccess) {
+            setShowSuccess(true);
+            const timer = setTimeout(() => {
+                setShowSuccess(false);
+            }, 5000);
+
+            return () => clearTimeout(timer);
+        }
+    }, [globalSuccess]);
 
     const centerMapOnUserLocation = useCallback(() => {
         if (userLocation && mapInstanceRef.current) {
@@ -55,7 +68,7 @@ const LocationList = ({ user, locations }) => {
     const submitLocation = useCallback(async (locationData) => {
         setIsSubmitting(true);
         setSubmitError(null);
-    
+
         router.post('/locations', locationData, {
             preserveScroll: true,
             preserveState: true,
@@ -64,7 +77,6 @@ const LocationList = ({ user, locations }) => {
                 setSelectedPosition(null);
                 setIsSubmitting(false);
                 setSubmitError(null);
-                // The page will re-render with the updated locations prop
             },
             onError: (errors) => {
                 console.error('Error adding location:', errors);
@@ -91,7 +103,8 @@ const LocationList = ({ user, locations }) => {
                 isAddingLocation={isAddingLocation}
                 onLocationSelect={handleLocationSelect}
                 onMapReady={handleMapReady}
-                key="main-map" // Stable key to prevent remounting
+                selectedPosition={selectedPosition}
+                key="main-map"
             />
 
             <div className="absolute inset-0 pointer-events-none z-[450]">
@@ -102,7 +115,7 @@ const LocationList = ({ user, locations }) => {
                     />
                 )}
 
-                {globalSuccess && (
+                {showSuccess && globalSuccess && (
                     <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-[500] text-sm">
                         <div className="flex items-center">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
