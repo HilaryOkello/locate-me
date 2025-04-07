@@ -1,73 +1,67 @@
-import React, { useEffect, useRef } from 'react';
-import { Link } from '@inertiajs/react';
+import React, { useRef, useCallback } from 'react';
+import { Link } from '@inertiajs/react'; // Keep if needed elsewhere in Layout or page
 import Layout from '../components/Layout';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-
-// Fix for Leaflet marker icon issue (shadow.png not found)
-import icon from 'leaflet/dist/images/marker-icon.png';
-import iconShadow from 'leaflet/dist/images/marker-shadow.png';
-
-let DefaultIcon = L.icon({
-    iconUrl: icon,
-    shadowUrl: iconShadow
-});
-
-L.Marker.prototype.options.icon = DefaultIcon;
+import LeafletMap from '../components/LeafletMap';
+import UserLocationButton from '../components/UserLocationButton';
+import LocationErrorToast from '../components/LocationError';
+import { useGeolocation } from '../hooks/useGeolocation';
 
 const LocationList = ({ user, locations }) => {
-    const mapRef = useRef(null);
+    // Use the custom hook for geolocation state and logic
+    const { userLocation, locationError, isLoading, getUserLocation, clearError } = useGeolocation();
+    const mapRef = useRef(null); // Ref to access LeafletMap imperative methods
 
-    useEffect(() => {
-        if (!mapRef.current) return;
-
-        const map = L.map(mapRef.current, {
-            center: [0.0236, 37.9062], // Approximate center of Kenya
-            zoom: 3,
-            zoomControl: false // Disable default zoom controls
-        });
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
-
-        locations.forEach(location => {
-            const tooltipContent = `<b>${location.name}</b><br>Added by: ${user.email}`;
-            L.marker([location.latitude, location.longitude])
-                .addTo(map)
-                .bindTooltip(tooltipContent);
-        });
-
-        // Custom zoom control
-        const zoomControl = L.control.zoom({
-            position: 'topright' // We'll adjust the position with CSS
-        });
-        zoomControl.addTo(map);
-
-        // Apply custom styling for the zoom control
-        const zoomInButton = mapRef.current.querySelector('.leaflet-control-zoom-in');
-        const zoomOutButton = mapRef.current.querySelector('.leaflet-control-zoom-out');
-
-        if (zoomInButton && zoomOutButton) {
-            const zoomControlContainer = zoomInButton.parentNode;
-            zoomControlContainer.classList.add('flex', 'flex-col', 'absolute', 'right-4', 'top-1/2', '-translate-y-1/2', 'z-10');
-            zoomInButton.classList.add('bg-white', 'text-gray-700', 'border', 'border-gray-300', 'rounded-t', 'py-2', 'px-3', 'shadow-md', 'hover:bg-gray-100', 'focus:outline-none');
-            zoomOutButton.classList.add('bg-white', 'text-gray-700', 'border', 'border-gray-300', 'rounded-b', 'py-2', 'px-3', 'shadow-md', 'hover:bg-gray-100', 'focus:outline-none');
+    // Function to center map, now calls the map component's method
+    const centerMapOnUserLocation = useCallback(() => {
+        if (userLocation && mapRef.current) {
+            mapRef.current.setView(
+                [userLocation.latitude, userLocation.longitude],
+                15, // Zoom level
+                { animate: true, duration: 1 }
+            );
+        } else if (!isLoading) {
+             // If no location yet and not already loading, try fetching it
+            getUserLocation();
         }
+    }, [userLocation, isLoading, getUserLocation]);
 
-        return () => {
-            map.remove(); // Clean up the map on unmount
-        };
-    }, [locations]);
+    // Attempt to get location on initial load (optional, button click can also trigger)
+    // useEffect(() => {
+    //    getUserLocation();
+    // }, [getUserLocation]);
+
 
     return (
-        <>
-            <Layout>
-                <div ref={mapRef} className="absolute top-0 left-0 w-full h-full" style={{ marginTop: '60px', marginBottom: '56px' }}>
-                    {/* The map will be rendered here */}
+        <Layout user={user}> {/* Pass user to Layout if needed there */}
+            <div className="absolute inset-0">
+                {/* Pass relevant props to LeafletMap */}
+                <LeafletMap
+                    ref={mapRef} // Assign ref to access map methods
+                    locations={locations}
+                    user={user}
+                    userLocation={userLocation} // Pass userLocation state down
+                    // Optional: Add onMapReady if needed: onMapReady={(map) => console.log('Map is ready!')}
+                />
+
+                {/* Container for floating UI elements over the map */}
+                <div className="absolute inset-0 pointer-events-none z-[450]"> {/* Ensure this container is above map overlay */}
+                    {/* User Location Button */}
+                    <div className="absolute bottom-6 left-6 pointer-events-auto">
+                        <UserLocationButton
+                            onClick={centerMapOnUserLocation}
+                            isLoading={isLoading}
+                            disabled={!userLocation && !isLoading && !!locationError} // Disable if error shown and no location
+                        />
+                    </div>
+
+                    {/* Location Error Toast */}
+                    <LocationErrorToast
+                        message={locationError}
+                        onDismiss={clearError} // Use clearError from the hook
+                    />
                 </div>
-            </Layout>
-        </>
+            </div>
+        </Layout>
     );
 };
 
