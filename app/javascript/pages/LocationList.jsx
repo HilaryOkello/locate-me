@@ -1,6 +1,5 @@
 import React, { useRef, useCallback, useState } from 'react';
 import { Link } from '@inertiajs/react'; // Keep if needed elsewhere in Layout or page
-import Layout from '../components/Layout';
 import LeafletMap from '../components/LeafletMap';
 import UserLocationButton from '../components/UserLocationButton';
 import AddLocationButton from '../components/AddLocationButton';
@@ -95,7 +94,6 @@ const LocationList = ({ user, locations }) => {
     }, []);
 
     return (
-        <Layout user={user}> {/* Pass user to Layout if needed there */}
             <div className="absolute inset-0">
                 {/* Pass relevant props to LeafletMap */}
                 <LeafletMap
@@ -166,7 +164,6 @@ const LocationList = ({ user, locations }) => {
                     </div>
                 </div>
             </div>
-        </Layout>
     );
 };
 
