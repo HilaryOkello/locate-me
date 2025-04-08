@@ -3,6 +3,7 @@
 A Rails + Inertia.js (React) app where users can create an account, log in/out, and add their location as a pin on a map. The landing page displays pins from all users.
 
 🔗 **Live site:** [https://mysite-nt9e.onrender.com](https://mysite-nt9e.onrender.com)
+(credentials for admin and seeded users can be found in db/seeds.rb).
 
 ---
 
@@ -25,6 +26,14 @@ A Rails + Inertia.js (React) app where users can create an account, log in/out, 
 ---
 
 ## 🧑‍💻 Getting Started
+
+### ✅ Prerequisites
+Get started by ensuring you have the necessary tools installed:
+
+ - ***Ruby:***  [ruby 3.4.2](https://www.ruby-lang.org/en/documentation/installation/)
+ - ***Rails:*** [Rails 8.0.2](https://gorails.com/setup/ubuntu/24.04)
+ - ***Node.js & npm (or yarn)*** 
+ - ***PostgreSQL:*** Installed and running.
 
 ### 1. Clone the repo
 ```bash
